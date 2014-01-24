@@ -1,0 +1,136 @@
+var config = require('./config.js');
+
+var cradle = require('cradle');
+var cradle_db_conn = new cradle.Connection(config.couch_db_host, config.couch_db_port, {
+  cache: false,
+  raw: false
+});
+
+if (cradle_db_conn) {
+  
+  cradle_db_conn.database("pw_cards").exists(function(err, exists) {
+    if (err) {
+      couch_pw_cards = null;
+    } else if (exists) {
+      couch_pw_cards = cradle_db_conn.database("pw_cards");
+    } else {
+      cradle_db_conn.database("pw_cards").create();
+      couch_pw_cards = cradle_db_conn.database("pw_cards");
+    }
+    if (couch_pw_cards) {
+      couch_pw_cards.save("_design/pw_cards", {
+        all: {
+          map: function(doc) {
+            emit(null, doc);
+          }
+        },
+        by_deck_category_title: {
+          map: function(doc) {
+            if(doc.deck && doc.category && doc.title) {
+              emit([doc.deck, doc.category, doc.title], doc);
+            }
+          }
+        }
+      });
+      
+      // === PULL IN PREDEFINED DATA (START)
+      var pre_data_stack = [
+        {
+          deck: 1, 
+          category: "Active",
+          title: "SEARCH",
+          description: "Search for a job that matches your interests, skills, needs, and lifestyle.",
+          tip: ""
+        },
+        {
+          deck: 1, 
+          category: "Active",
+          title: "APPLY",
+          description: "Personalize your cover letter, attach or leave your resume behind, and complete any additional application steps.",
+          tip: "Remember to spell check!"
+        },
+        {
+          deck: 1, 
+          category: "Active",
+          title: "INVESTIGATE",
+          description: "For a company of interest: who is the hiring manager? where is it located? do you know anyone on the 'inside'?",
+          tip: "You may have to call them!"
+        },
+        {
+          deck: 1, 
+          category: "Real",
+          title: "PLAN",
+          description: "Decide what you want to accomplish with your day. Outline the toughest and the easiest tasks. Decide which to accomplish first, your call!",
+          tip: "Do the most important first!!"
+        },
+        {
+          deck: 1, 
+          category: "Stable",
+          title: "BREAKFAST",
+          description: "Start your day right!",
+          tip: ""
+        },
+        {
+          deck: 1, 
+          category: "Stable",
+          title: "LUNCH",
+          description: "Remember to keep your fuel level high throughout the day!",
+          tip: ""
+        },
+        {
+          deck: 1, 
+          category: "Stable",
+          title: "DINNER",
+          description: "Reward yourself for a hard day of work!",
+          tip: ""
+        },
+        {
+          deck: 1, 
+          category: "Stable",
+          title: "BREAK",
+          description: "Take 10 - 30 minutes. Stretch your legs, take a walk, or do something you enjoy to keep your mind sharp when you return.",
+          tip: ""
+        },
+        {
+          deck: 2, 
+          category: "Active",
+          title: "SEARCH",
+          description: "Search for a job that matches your cohort buddy's interests, skills, needs, and lifestyle.",
+          tip: ""
+        },
+        {
+          deck: 2, 
+          category: "Active",
+          title: "APPLY",
+          description: "Personalize your cover letter, attach or leave your resume behind, and complete any additional application steps.",
+          tip: "Remember to spell check!"
+        },
+        {
+          deck: 2, 
+          category: "Active",
+          title: "SEARCH",
+          description: "Search for a job that matches your interests, skills, needs, and lifestyle.",
+          tip: ""
+        },
+        {
+          deck: 2, 
+          category: "Stable",
+          title: "CONNECT",
+          description: "Call your cohort buddy. Discuss goals for the day, what you did yesterday, if you applied to the job you sent each other, etc.",
+          tip: "Meet up for coffee to work!"
+        },
+        {
+          deck: 2, 
+          category: "Real",
+          title: "REFLECTION",
+          description: "Did you accomplish what you wanted? Did you expect too much or too little? What will you do differently tomorrow?",
+          tip: ""
+        }
+      ];
+      
+      // === PULL IN PREDEFINED DATA (END)
+      
+    }
+  });
+  
+}
