@@ -1,5 +1,8 @@
 var fs = require('fs'); 
+var path = require('path'); 
 var _ = require('underscore');
+var crypto = require('crypto');
+var shasum = crypto.createHash('sha1');
 
 module.exports = {
   vars: {
@@ -16,14 +19,14 @@ module.exports = {
   },
   init: function($certPath, $certPass, $JSON) {
     console.log('start constructo : ', this);
-    if(typeof($certPath) !== 'undefined' && $certPath !== false) {
-      this.setCertificate($certPath);
-    }
     if(typeof($JSON) !== 'undefined' && $JSON !== false) {
       this.setJSON($JSON);
     }
     if(typeof($certPass) !== 'undefined' && $certPass !== false) {
       this.setCertificatePassword($certPass);
+    }
+    if(typeof($certPath) !== 'undefined' && $certPath !== false) {
+      this.setCertificate($certPath);
     }
   },
   // ======= ================ ======= //
@@ -41,6 +44,11 @@ module.exports = {
     console.log("sError: ", this.vars.$sError);
     console.log("uniqid: ", this.vars.$uniqid);
   },
+  /*
+	* Sets the path to a certificate
+	* Parameter: string, path to certificate
+	* Return: boolean, true on succes, false if file doesn't exist
+	*/
   setCertificate: function($path) {
     var me = this;
     fs.exists($path, function($exists) {
@@ -53,10 +61,43 @@ module.exports = {
       }
     });
   },
+  /*
+	* Sets the certificate's password
+	* Parameter: string, password to the certificate
+	* Return: boolean, always true
+	*/
   setCertificatePassword: function($p) {
     this.vars.$certPass = $p;
     return true;
   },
+  /*
+	* Sets the path to the WWDR Intermediate certificate
+	* Parameter: string, path to certificate
+	* Return: boolean, always true
+	*/
+  setWWDRcertPath: function($path) {
+    this.vars.WWDRcertPath = $path;
+    return true;
+  },
+  /*
+	* Sets the path to the temporary directory (must end with a slash)
+	* Parameter: string, path to temporary directory
+	* Return: boolean, true on success, false if directory doesn't exist
+	*/
+  setTempPath: function($path) {
+    var me = this;
+    fs.exists($path, function($exists) {
+      if($exists) {
+        me.vars.$tempPath = $path;
+        console.log('VARS AFTER: ', me.vars);
+      }
+    });
+  },
+  /*
+	* Decodes JSON and saves it to a variable
+	* Parameter: json-string
+	* Return: boolean, true on succes, false if json wasn't decodable
+	*/
   setJSON: function($JSON) {
     var res = false;
     if(_.isObject($JSON)) {
@@ -67,11 +108,65 @@ module.exports = {
     }
     return res;
   },
+  /*
+	* Adds file to the file array
+	* Parameter: string, path to file
+	* Parameter: string, optional, name to create file as
+	* Return: boolean, true on succes, false if file doesn't exist
+	*/
+  addFile: function($path, $name) {
+    fs.exists($path, function($exists) {
+      if($exists) {
+        if(typeof($name) === 'undefined' || $name === null) {
+          $name = path.basename($path);
+        }
+        var mid_obj = {
+          'name': $name,
+          'path': $path
+        };
+        this.vars.$files.push(mid_obj);
+      } else {
+        this.vars.$sError = "File does not exist.";
+      }
+    });
+  },
+  /*
+	* Creates the actual .pkpass file
+	* Parameter: boolean, if output is true, send the zip file to the browser.
+	* Return: zipped .pkpass file on succes, false on failure
+	*/
+  create: function($output) {
+    
+  },
+  getName: function() {
+    return this.vars.$name;
+  },
+  setName: function($name) {
+    this.vars.$name = $name;
+  },
+  getError: function() {
+    return this.vars.$sError;
+  },
   // ======= ================= ======= //
   // ======= PRIVATE FUNCTIONS ======= //
   // ======= ================= ======= //
-  createManifest: function() { // === creates the hashes for the files and adds them into a json string
-    
+  /*
+	* Subfunction of create()
+	* This function creates the hashes for the files and adds them into a json string.
+	*/
+  createManifest: function() {
+    shasum.update(this.vars.JSON);
+    $sha_mid = {
+      'pass.json': shasum.digest('hex')
+    };
+    this.vars.$SHAs.push($sha_mid);
+    $hasicon = false;
+    if(this.vars.files.length > 0) {
+    for(var i = 0; i < this.vars.files; i++) {
+      if(this.vars.files[i].name.toLowerCase() == 'icon.png') {
+        $hasicon = true;
+      }
+    }
   },
   /*
 	* Converts PKCS7 PEM to PKCS7 DER
@@ -98,6 +193,12 @@ module.exports = {
     
   },
   paths: function() { // === declares all paths used for temporary files
+    // ==== declare base paths
+    $paths = {
+      'pkpass': 'pass.pkpass',
+      'signature': 'signature',
+      'manifest': 'manifest.json'
+    };
     
   },
   clean: function() { // === removes all temporary files
