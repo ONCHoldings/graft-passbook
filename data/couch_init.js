@@ -17,7 +17,6 @@ if (cradle_db_conn) {
       couch_pw_cards = cradle_db_conn.database("pw_cards");
     }
     if (couch_pw_cards) {
-      console.log("couch_pw_cards internal : ", couch_pw_cards);
       couch_pw_cards.save("_design/pw_cards", {
         all: {
           map: function(doc) {

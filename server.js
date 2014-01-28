@@ -1,1 +1,1 @@
-require('./data/passwork');
+module.exports.pk_class = require('./data/passwork');

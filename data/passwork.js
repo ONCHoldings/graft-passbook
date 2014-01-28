@@ -3,6 +3,4 @@ var couch_pw_cards = require('./couch_init.js'); // === start predefined couch d
 
 var pk_class = require('./pk_class.js');
 pk_class.init(__dirname + '/assets/AppleWWDRCA.pem', '123', {});
-// ====== TMP test drive section (test drive class methods) (start)
-
-// ====== TMP test drive section (test drive class methods) (end)
+module.exports = pk_class;
