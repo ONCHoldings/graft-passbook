@@ -3,6 +3,8 @@ var path = require('path');
 var _ = require('underscore');
 var crypto = require('crypto');
 var shasum = crypto.createHash('sha1');
+var async = require('async');
+var cradle = require('cradle');
 
 module.exports = {
   vars: {
@@ -155,19 +157,20 @@ module.exports = {
 	* This function creates the hashes for the files and adds them into a json string.
 	*/
   createManifest: function() {
-    shasum.update(this.vars.JSON);
+    shasum.update(this.vars.$JSON);
     $sha_mid = {
       'pass.json': shasum.digest('hex')
     };
     this.vars.$SHAs.push($sha_mid);
     $hasicon = false;
     if(this.vars.files.length > 0) {
-    for(var i = 0; i < this.vars.files; i++) {
-      if(this.vars.files[i].name.toLowerCase() == 'icon.png') {
-        $hasicon = true;
+      for(var i = 0; i < this.vars.files; i++) {
+        if(this.vars.files[i].name.toLowerCase() == 'icon.png') {
+          $hasicon = true;
+        }
       }
     }
-  },
+  },    
   /*
 	* Converts PKCS7 PEM to PKCS7 DER
 	* Parameter: string, holding PKCS7 PEM, binary, detached

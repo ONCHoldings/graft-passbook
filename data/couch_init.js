@@ -1,13 +1,12 @@
 var config = require('./config.js');
-
+var async = require('async');
 var cradle = require('cradle');
 var cradle_db_conn = new cradle.Connection(config.couch_db_host, config.couch_db_port, {
   cache: false,
   raw: false
 });
-
+var couch_pw_cards = null;
 if (cradle_db_conn) {
-  
   cradle_db_conn.database("pw_cards").exists(function(err, exists) {
     if (err) {
       couch_pw_cards = null;
@@ -18,21 +17,22 @@ if (cradle_db_conn) {
       couch_pw_cards = cradle_db_conn.database("pw_cards");
     }
     if (couch_pw_cards) {
+      console.log("couch_pw_cards internal : ", couch_pw_cards);
       couch_pw_cards.save("_design/pw_cards", {
         all: {
           map: function(doc) {
             emit(null, doc);
           }
         },
-        by_deck_category_title: {
+        by_deck_category_title_desc_tip: {
           map: function(doc) {
-            if(doc.deck && doc.category && doc.title) {
-              emit([doc.deck, doc.category, doc.title], doc);
+            if(doc.deck && doc.category && doc.title && doc.description && doc.tip) {
+              emit([doc.deck, doc.category, doc.title, doc.description, doc.tip], doc);
             }
           }
         }
       });
-      
+      console.log("STARTING CCOUCH DATA PREDEFINE PROCESS");
       // === PULL IN PREDEFINED DATA (START)
       var pre_data_stack = [
         {
@@ -127,10 +127,33 @@ if (cradle_db_conn) {
           tip: ""
         }
       ];
-      
-      // === PULL IN PREDEFINED DATA (END)
-      
+      async.parallel([
+        function(callback) {
+          couch_pw_cards.view("pw_cards/all", function(err, dl_all) {
+            if(!err && dl_all.length > 0) {
+              async.forEach(dl_all, (function(da, cb) {
+                couch_pw_cards.remove(da._id, da._rev, function(err, rem_res) {
+                  console.log('REMOVE RESULT: ', rem_res);
+                  cb();
+                });
+              }), function(err) {
+                console.log("DB clean up process finished");
+                callback();
+              });
+            }
+          });
+        }
+      ], function(data) {
+        async.forEach(pre_data_stack, (function(pds, cb) {
+          couch_pw_cards.save(pds, function(err, s_res) {
+            console.log("PRELOAD ITEM SAVE RESULTS: ", JSON.stringify(err), s_res);
+            cb();
+          });
+        }), function(err) {
+          console.log("DB preload completed");
+        });
+      });
+      // === PULL IN PREDEFINED DATA (END) 
     }
   });
-  
 }
