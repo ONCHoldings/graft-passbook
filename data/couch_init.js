@@ -1,7 +1,7 @@
 var config = require('./config.js');
 var async = require('async');
 var cradle = require('cradle');
-var cradle_db_conn = new cradle.Connection(config.couch_db_host, config.couch_db_port, {
+var cradle_db_conn = new cradle.Connection(config.db_host, config.db_port, {
   cache: false,
   raw: false
 });
@@ -139,6 +139,8 @@ if (cradle_db_conn) {
                 console.log("DB clean up process finished");
                 callback();
               });
+            } else {
+              callback();
             }
           });
         }
@@ -152,7 +154,7 @@ if (cradle_db_conn) {
           console.log("DB preload completed");
         });
       });
-      // === PULL IN PREDEFINED DATA (END) 
+      // === PULL IN PREDEFINED DATA (END)
     }
   });
 }

@@ -4,7 +4,7 @@ var _ = require('underscore');
 var crypto = require('crypto');
 var shasum = crypto.createHash('sha1');
 var async = require('async');
-var cradle = require('cradle');
+var couch_config = require('./couch_config');
 
 module.exports = {
   vars: {
@@ -32,6 +32,226 @@ module.exports = {
     }
   },
   // ======= ================ ======= //
+  // ======= HELPER FUNCTIONS ======= //
+  // ======= ================ ======= //
+  helpers: {
+    array_merge: function() {
+      var args = Array.prototype.slice.call(arguments),
+      argl = args.length,
+      arg,
+      retObj = {},
+      k = '',
+      argil = 0,
+      j = 0,
+      i = 0,
+      ct = 0,
+      toStr = Object.prototype.toString,
+      retArr = true;
+
+      for (i = 0; i < argl; i++) {
+        if (toStr.call(args[i]) !== '[object Array]') {
+          retArr = false;
+          break;
+        }
+      }
+
+      if (retArr) {
+        retArr = [];
+        for (i = 0; i < argl; i++) {
+          retArr = retArr.concat(args[i]);
+        }
+        return retArr;
+      }
+
+      for (i = 0, ct = 0; i < argl; i++) {
+        arg = args[i];
+        if (toStr.call(arg) === '[object Array]') {
+          for (j = 0, argil = arg.length; j < argil; j++) {
+            retObj[ct++] = arg[j];
+          }
+        }
+        else {
+          for (k in arg) {
+            if (arg.hasOwnProperty(k)) {
+              if (parseInt(k, 10) + '' === k) {
+                retObj[ct++] = arg[k];
+              }
+              else {
+                retObj[k] = arg[k];
+              }
+            }
+          }
+        }
+      }
+      return retObj;
+    },
+    ucwords_strtolower: function(str) {
+      var str_arr = str.split(" ");
+      str_res = "";
+      for(var i = 0; i < str_arr.length; i++) {
+        str_res += str_arr[i].charAt(0).toUpperCase() + str_arr[i].slice(1) + " ";
+      }
+      str_res = str_res.trim();
+      return str_res;
+    }
+  },
+  // ======= ================ ======= //
+  // ======= ACTION FUNCTIONS ======= //
+  // ======= ================ ======= //
+  check_psclass_params: function(res) {
+    res.json(this.vars);
+  },
+  loadDecksData: function(res) {
+    couch_pw_cards.view("pw_cards/all", function(err, dl_all) {
+      var res_data = {
+        status: false,
+        decks: [],
+        msg: ''
+      };
+      if(!err) {
+        res_data['decks'] = dl_all;
+        res_data['status'] = true;
+        res_data['msg'] = 'OK';
+      } else {
+        res_data['msg'] = 'Server error during DB query';
+      }
+      res.json(res_data);
+    });  
+  },
+  startBuilder: function(id, res) {
+    var me = this;
+    var res_data = {
+      'status': false,
+      'item': null,
+      'msg': '',
+      'test_stack': []
+    };
+    couch_pw_cards.get(id, function(err, citem) {
+      if(!err && citem) {
+        res_data['status'] = true;
+        res_data['item'] = citem;
+        res_data['msg'] = "OK";
+        // ==== BUILDING CODE (START)
+        switch(citem.category) {
+          case 'Real':
+            $labelco = 'rgb(174,42,34)';
+            break;
+          case 'Honest':
+            $labelco = 'rgb(202,113,19)';
+            break;
+          case 'Stable':
+            $labelco = 'rgb(202,183,28)';
+            break;
+          case 'Active':
+            $labelco = 'rgb(34,136,103)';
+            break;
+          case 'Ahead':
+            $labelco = 'rgb(37,110,167)';
+            break;
+          default:
+            $labelco = 'rgb(137,23,198)';
+            break;
+        }
+        me.setCertificate(__dirname + '/assets/passdemo.p12');
+        me.setCertificatePassword('pass');
+        me.setWWDRcertPath(__dirname + '/assets/AppleWWDRCA.pem');
+        $standardKeys = {
+          'description': 'GoBe.Me-a-Meal',
+          'formatVersion': 1,
+          'organizationName': 'GoBe.Me',
+          'passTypeIdentifier': 'pass.me.gobe.passdemo',
+          'serialNumber': String(Math.random(1000, 9999)*10000000000000000),
+          'teamIdentifier': '2WMG965JK8',
+          'relevantDate': '2014-01-14T12:59-08:00',
+          'ignoresTimeZone': true
+        };
+        $associatedAppKeys = [];
+        $relevanceKeys = [];
+        $row_tip = 'None';
+        if(citem.tip != "") $row_tip = citem.tip;
+        $styleKeys = {
+          'eventTicket': {
+            'primaryFields': [
+              {
+                'key': 'p1',
+                'value': citem.title,
+                'label': ''
+              }
+            ],
+            'secondaryFields': [
+              {
+                'key': 's1',
+                'value': me.helpers.ucwords_strtolower(citem.title),
+                'label': 'Task'
+              }
+            ],
+            'auxiliaryFields': [
+              {
+                'key': 'a1',
+        				'value': 'Today',
+        				'label': 'Due'
+              }
+            ],
+            'backFields': [
+              {
+                'key': 'b1',
+        				'value': citem.description,
+        				'label': 'Instructions'
+              },
+              {
+                'key': 'b2',
+        				'value': $row_tip,
+        				'label': 'Tip'
+              },
+              {
+                'key': 'b3',
+        				'value': 'GoBe.Me\n832 Folsom St\nSuite 1001\nSan Francisco, CA 94107\n\ncards@gobe.me',
+        				'label': 'Contact Us',
+        				'dataDetectorTypes': ['PKDataDetectorTypeLink']
+              }
+            ],
+            'headerFields': [
+              {
+                'key': 'h1',
+        				'value': citem.category,
+        				'label': 'Be'
+              }
+            ]
+          }
+        };
+        $visualAppearanceKeys = {
+          'barcode': {
+            'format': 'PKBarcodeFormatQR',
+            'message': String(Math.random(1000, 5000)*10000000000000000),
+            'messageEncoding': 'iso-8859-1'
+          },
+          'backgroundColor': $labelco,
+          'foregroundColor': 'rgb(255,255,255)',
+          'labelColor': 'rgb(21,21,21)'
+        };
+        $webServiceKeys = [];
+        $passData = me.helpers.array_merge($standardKeys, $associatedAppKeys, $relevanceKeys, $styleKeys, $visualAppearanceKeys, $webServiceKeys);
+        me.setJSON(JSON.stringify($passData));
+        me.addFile(__dirname + '/assets/images/icon.png');
+        me.addFile(__dirname + '/assets/images/icon@2x.png');
+        me.addFile(__dirname + '/assets/images/logo.png');
+        me.addFile(__dirname + '/assets/images/strip.png');
+        // ==== BUILDING CODE (END)
+        res_data['test_stack'].push({'standardKeys': $standardKeys});
+        res_data['test_stack'].push({'associatedAppKeys': $associatedAppKeys});
+        res_data['test_stack'].push({'relevanceKeys': $relevanceKeys});
+        res_data['test_stack'].push({'styleKeys': $styleKeys});
+        res_data['test_stack'].push({'visualAppearanceKeys': $visualAppearanceKeys});
+        res_data['test_stack'].push({'webServiceKeys': $webServiceKeys});
+        res_data['test_stack'].push({'passData': $passData});
+        res_data['test_stack'].push({'passData_string': JSON.stringify($passData)});
+        res_data['test_stack'].push({'labelco': $labelco});
+        console.log("TEST STACK: ", res_data['test_stack']);
+      }
+      res.json(res_data);
+    });
+  },
+  // ======= ================ ======= //
   // ======= PUBLIC FUNCTIONS ======= //
   // ======= ================ ======= //
   debugVars: function() {
@@ -57,7 +277,7 @@ module.exports = {
       if($exists) {
         me.vars.$certPath = $path;
         console.log('Certificate file exists');
-        console.log('VARS AFTER: ', me.vars);
+        // console.log('VARS AFTER: ', me.vars);
       } else {
         console.log('Certificate file does not exist.');
       }
@@ -78,7 +298,7 @@ module.exports = {
 	* Return: boolean, always true
 	*/
   setWWDRcertPath: function($path) {
-    this.vars.WWDRcertPath = $path;
+    this.vars.$WWDRcertPath = $path;
     return true;
   },
   /*
@@ -102,8 +322,9 @@ module.exports = {
 	*/
   setJSON: function($JSON) {
     var res = false;
-    if(_.isObject($JSON)) {
-      this.vars.$JSON = $JSON;
+    $JSON_dec = JSON.parse($JSON);
+    if(_.isObject($JSON_dec)) {
+      this.vars.$JSON = $JSON_dec;
       res = true;
     } else {
       this.vars.$sError = 'This is not a JSON string.';
@@ -117,6 +338,7 @@ module.exports = {
 	* Return: boolean, true on succes, false if file doesn't exist
 	*/
   addFile: function($path, $name) {
+    var me = this;
     fs.exists($path, function($exists) {
       if($exists) {
         if(typeof($name) === 'undefined' || $name === null) {
@@ -126,9 +348,9 @@ module.exports = {
           'name': $name,
           'path': $path
         };
-        this.vars.$files.push(mid_obj);
+        me.vars.$files.push(mid_obj);
       } else {
-        this.vars.$sError = "File does not exist.";
+        me.vars.$sError = "File does not exist.";
       }
     });
   },
