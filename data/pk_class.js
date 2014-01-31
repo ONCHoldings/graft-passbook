@@ -35,6 +35,9 @@ module.exports = {
   // ======= HELPER FUNCTIONS ======= //
   // ======= ================ ======= //
   helpers: {
+    generateUniqueId: function() {
+     return String(Math.random(1000, 5000)*100000000000000000) + "_" + new Date().valueOf();
+    },
     array_merge: function() {
       var args = Array.prototype.slice.call(arguments),
       argl = args.length,
@@ -222,7 +225,7 @@ module.exports = {
         $visualAppearanceKeys = {
           'barcode': {
             'format': 'PKBarcodeFormatQR',
-            'message': String(Math.random(1000, 5000)*10000000000000000),
+            'message': String(Math.random(1000, 5000)*100000000000000000),
             'messageEncoding': 'iso-8859-1'
           },
           'backgroundColor': $labelco,
@@ -250,6 +253,10 @@ module.exports = {
       }
       res.json(res_data);
     });
+  },
+  startCreationProcess: function(res) {
+    var create_status = this.create(true);
+    res.json(true);
   },
   // ======= ================ ======= //
   // ======= PUBLIC FUNCTIONS ======= //
@@ -360,6 +367,28 @@ module.exports = {
 	* Return: zipped .pkpass file on succes, false on failure
 	*/
   create: function($output) {
+    console.log('START PASSBOOK CREATION PROCESS');
+    $paths = this.paths();
+    
+    // === creates and saves the json manifest
+    $manifest = this.createManifest();
+    console.log("CREATED MANIFEST: ", $manifest);
+    if(!$manifest) {
+      this.clean();
+      return false;
+    }
+    
+    // === create signature
+    if(this.createSignature($manifest) == false) {
+      this.clean();
+      return false;
+    }
+    
+    // === create zip
+    if(this.createZip($manifest) == false) {
+      this.clean();
+      return false;
+    }
     
   },
   getName: function() {
@@ -379,19 +408,34 @@ module.exports = {
 	* This function creates the hashes for the files and adds them into a json string.
 	*/
   createManifest: function() {
-    shasum.update(this.vars.$JSON);
-    $sha_mid = {
-      'pass.json': shasum.digest('hex')
-    };
-    this.vars.$SHAs.push($sha_mid);
+    var shasum = crypto.createHash('sha1');
+    shasum.update(JSON.stringify(this.vars.$JSON));
+    this.vars.$SHAs.push({'pass.json': shasum.digest('hex')});
     $hasicon = false;
-    if(this.vars.files.length > 0) {
-      for(var i = 0; i < this.vars.files; i++) {
-        if(this.vars.files[i].name.toLowerCase() == 'icon.png') {
+    if(this.vars.$files.length > 0) {
+      for(var i = 0; i < this.vars.$files.length; i++) {
+        if(this.vars.$files[i].name.toLowerCase() == 'icon.png') {
           $hasicon = true;
         }
+        var path_content = fs.readFileSync(this.vars.$files[i].path);
+        var path_content_str = path_content.toString('utf-8');
+        
+        var shasum = crypto.createHash('sha1');
+        shasum.update(path_content_str);
+        var path_name = this.vars.$files[i].name;
+        var mid_tmp = {};
+        mid_tmp[path_name] = shasum.digest('hex');
+        this.vars.$SHAs.push(mid_tmp);
       }
+      console.log("SHAs CHECK ME FINAL: ", this.vars.$SHAs);
     }
+    if(!$hasicon) {
+      this.vars.$sError = "Missing required icon.png file.";
+      this.clean();
+      return false;
+    }
+    $manifest = JSON.stringify(this.vars.$SHAs);
+    return $manifest;
   },    
   /*
 	* Converts PKCS7 PEM to PKCS7 DER
@@ -407,7 +451,25 @@ module.exports = {
 	* Return: boolean, true on succes, failse on failure
 	*/
   createSignature: function($manifest) {
+    $paths = this.paths();
+    console.log("PATHS ON CREATE SIGNATURE: ", $paths);
+    // === write manifest data to manifest.json file (file_put_contents($paths['manifest'], $manifest);)
+    // fs.readFile(this.vars.$certPath, function(err_rf, data_rf) {
+    //       console.log('READING CERT FILE ERR: ', err_rf);
+    //       console.log('READING CERT FILE DATA: ', data_rf);
+    //       console.log('READING CERT FILE DATA STR: ', data_rf.toString('utf-8'));
+    //     });
     
+    var stream = fs.createReadStream(this.vars.$certPath, {
+      flags: 'r',
+      encoding: 'utf-8',
+      fd: null,
+      bufferSize: 1
+    }), line = "";
+    stream.addListener('data', function(char) {
+      console.log("STREAM CHAR: ", char);
+    });
+    return true;
   },
   /*
 	* Creates .pkpass (zip archive)
@@ -418,6 +480,7 @@ module.exports = {
     
   },
   paths: function() { // === declares all paths used for temporary files
+    me = this;
     // ==== declare base paths
     $paths = {
       'pkpass': 'pass.pkpass',
@@ -425,8 +488,30 @@ module.exports = {
       'manifest': 'manifest.json'
     };
     
+    // === if trailing slash is missing, add it
+    if(this.vars.$tempPath.substr(-1) != "/") {
+      this.vars.$tempPath = this.vars.$tempPath + "/";
+    }
+    
+    // === generate a unique subfolder in the tempPath to support generating more passes at the same time without erasing/overwriting each others files
+    if(this.vars.$uniqid === null) {
+      this.vars.$uniqid = this.helpers.generateUniqueId();
+      var check_path = __dirname + "/assets/" + this.vars.$tempPath + this.vars.$uniqid;
+      fs.exists(check_path, function($exists) {
+        if(!$exists) {
+          fs.mkdirSync(check_path);
+        }
+      });
+    }
+    // ==== add temp folder path
+    $paths.pkpass = __dirname + "/assets/" + this.vars.$tempPath + this.vars.$uniqid + "/" + $paths.pkpass;
+    $paths.signature = __dirname + "/assets/" + this.vars.$tempPath + this.vars.$uniqid + "/" + $paths.signature;
+    $paths.manifest = __dirname + "/assets/" + this.vars.$tempPath + this.vars.$uniqid + "/" + $paths.manifest;
+    return $paths;
   },
   clean: function() { // === removes all temporary files
-    
+    console.log("CLEAN STARTED!");
+    $paths = this.paths();
+    console.log("PATHS FOR CLEAN : ", $paths);
   }
 };
