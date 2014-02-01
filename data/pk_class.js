@@ -1,7 +1,11 @@
-var fs = require('fs'); 
+var fs = require('fs');
+var tls = require('tls');
+var cli = require('cli');
+var spawn = require("child_process").spawn; 
 var path = require('path'); 
 var _ = require('underscore');
 var crypto = require('crypto');
+var node_forge = require('node-forge');
 var shasum = crypto.createHash('sha1');
 var async = require('async');
 var couch_config = require('./couch_config');
@@ -445,30 +449,62 @@ module.exports = {
   convertPEMtoDER: function($signature) {
     
   },
+  p12_file_extractor: function(p12File) {
+    var pemFile = "/web_projects/graft-passwork-app/node_modules/graft-passbook/data/assets/test_dumm.pem";
+    spawn("openssl", ["pkcs12", "-in", p12File, "-out", pemFile]).on("exit", function(code) {
+      console.log("CODE: ", code);
+      if (code == 0)
+        console.log("PEM GENERATION COMPLETED");
+      else
+        console.log("PEM GENERATION FAILED");
+    });
+                
+    // async.waterfall([
+    //       console.log("EXTRACTION WATERFALL STARTED")
+    //     ], function(error) {
+    //       console.log("waterwall error: ", error);
+    //       console.log("EXTRACTING FINISJHED");
+    //     });
+  },
   /*
 	* Creates a signature and saves it
 	* Parameter: json-string, manifest file
 	* Return: boolean, true on succes, failse on failure
 	*/
-  createSignature: function($manifest) {
+  createSignature: function($manifest) { // node_forge
     $paths = this.paths();
     console.log("PATHS ON CREATE SIGNATURE: ", $paths);
     // === write manifest data to manifest.json file (file_put_contents($paths['manifest'], $manifest);)
+    
+    var privateKey = fs.readFileSync(this.vars.$WWDRcertPath).toString('ascii');
+    console.log("privateKey : ", privateKey);
+    
+    this.p12_file_extractor(this.vars.$certPath);
+
+    // var p12 = fs.readFileSync(this.vars.$certPath, 'ascii');
+    //     console.log(p12.toString('UTF-8'));
+    // console.log("pfx: ", p12);
+    // console.log("passphrase: ", this.vars.$certPass, typeof(this.vars.$certPass));
+    //     var credentials = crypto.createCredentials({pfx: p12, passphrase: this.vars.$certPass});
+    //     console.log("credentials: ", credentials);
+    // console.log("seciure pair: ", tls.createSecurePair(credentials));
+    
     // fs.readFile(this.vars.$certPath, function(err_rf, data_rf) {
     //       console.log('READING CERT FILE ERR: ', err_rf);
     //       console.log('READING CERT FILE DATA: ', data_rf);
     //       console.log('READING CERT FILE DATA STR: ', data_rf.toString('utf-8'));
     //     });
     
-    var stream = fs.createReadStream(this.vars.$certPath, {
-      flags: 'r',
-      encoding: 'utf-8',
-      fd: null,
-      bufferSize: 1
-    }), line = "";
-    stream.addListener('data', function(char) {
-      console.log("STREAM CHAR: ", char);
-    });
+    // var stream = fs.createReadStream(this.vars.$certPath, {
+    //       flags: 'r',
+    //       encoding: 'utf-8',
+    //       fd: null,
+    //       bufferSize: 1
+    //     }), line = "";
+    //     stream.addListener('data', function(char) {
+    //       console.log("STREAM CHAR: ", char);
+    //     });
+    
     return true;
   },
   /*
