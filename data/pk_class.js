@@ -582,11 +582,6 @@ module.exports = {
       this.vars.$uniqid = this.helpers.generateUniqueId();
       var check_path = __dirname + "/assets/" + this.vars.$tempPath + this.vars.$uniqid;
       fs.mkdirSync(check_path);
-      // fs.exists(check_path, function($exists) {
-      //         if(!$exists) {
-      //           fs.mkdirSync(check_path);
-      //         }
-      //       });
     }
     // ==== add temp folder path
     $paths.pkpass = __dirname + "/assets/" + this.vars.$tempPath + this.vars.$uniqid + "/" + $paths.pkpass;
@@ -595,8 +590,16 @@ module.exports = {
     return $paths;
   },
   clean: function() { // === removes all temporary files
-    console.log("CLEAN STARTED!");
     $paths = this.paths();
-    console.log("PATHS FOR CLEAN : ", $paths);
+    fs.unlinkSync($paths.pkpass);
+    fs.unlinkSync($paths.signature);
+    fs.unlinkSync($paths.manifest);
+    var check_path = this.vars.$tempPath + this.vars.$uniqid;
+    fs.exists(check_path, function(exists) {
+      if(exists) {
+        fs.rmdirSync(check_path);
+      }
+    });
+    return true;
   }
 };
