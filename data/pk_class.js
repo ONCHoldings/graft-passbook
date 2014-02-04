@@ -10,6 +10,7 @@ var node_zip = require('node-native-zip');
 var shasum = crypto.createHash('sha1');
 var async = require('async');
 var couch_config = require('./couch_config');
+var _ = require('underscore');
 
 module.exports = {
   vars: {
@@ -397,17 +398,22 @@ module.exports = {
       return false;
     }
     
-    // res.download($paths.pkpass);
-    
     res.json(true);
-    
-    // ==== download zip archieve (start)
-    // var down_file = fs.readFileSync($paths.pkpass, 'binary');
-    //     console.log("ZIP ARCHIEVE FOR DOWNLOAD: ", down_file);
-    //     res.setHeader('Content-Length', down_file.length);
-    //     res.write(down_file, 'binary');
-    //     res.end();
-    // ==== download zip archieve (end)
+  },
+  /*
+	* Download .pkpass file (zip archieve)
+	*/
+  startDownloadProcess: function(res) {
+    $paths = this.paths();
+    var exist_flag = fs.existsSync($paths.pkpass);
+    console.log("FILE FOR DOWNLOAD : ", $paths.pkpass);
+    console.log("exist_flag : ", exist_flag);
+    var down_file = fs.readFileSync($paths.pkpass, 'binary');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Content-type', 'application/vnd.apple.pkpass');
+    res.setHeader('Content-Length', down_file.length);
+    res.setHeader('Content-Disposition', "attachment; filename='" + path.basename($paths.pkpass) + "'");
+    res.download($paths.pkpass);
   },
   getName: function() {
     return this.vars.$name;
@@ -541,40 +547,6 @@ module.exports = {
 	* Parameter: json-string, manifest file
 	* Return: boolean, true on succes, false on failure
 	*/
-	// createZip: function($manifest) {
-	//     var me = this;
-	//     $paths = this.paths();
-	//     var archive = new node_zip();
-	//     this.vars.$archive = archive;
-	//     var tmp_add_files = this.vars.$files;
-	//     tmp_add_files.push({name: path.basename($paths.manifest), path: $paths.manifest});
-	//     tmp_add_files.push({name: path.basename($paths.signature), path: $paths.signature});
-	//     // archive.addFiles(tmp_add_files, me.createZipAddFilesHandler(me, $paths.pkpass));
-	//     archive.addFiles(tmp_add_files, function (err, me) {
-	//         // if (err) return console.log("err while adding files", err);
-	//         var buff = archive.toBuffer();
-	//         // fs.writeFileSync($paths.pkpass, buff);
-	//         console.log("ERROR INSIDE: ", err);
-	//         console.log("ME INSIDE: ", me);
-	//         fs.writeFile($paths.pkpass, buff, function (me) {
-	//             me.createZipHandler($paths.pkpass);
-	//             // me.vars.$res.download($paths.pkpass);
-	//         });
-	//     });
-	//     return true;
-	//   },
-	//   createZipHandler: function(zip_path) {
-	//     console.log("START createZipHandler: ", zip_path);
-	//   },
-  // createZipAddFilesHandler: function(me, pkpass_path) {
-  //     console.log("START createZipAddFilesHandler: ", me);
-  //     var buff = me.vars.$archive.toBuffer();
-  //     // fs.writeFileSync($paths.pkpass, buff);
-  //     fs.writeFile(pkpass_path, buff, function () {
-  //         console.log("ZIP archieve creation completed");
-  //         // me.vars.$res.download($paths.pkpass);
-  //     });
-  //   },
   createZip: function($manifest) {
     var me = this;
     $paths = this.paths();
