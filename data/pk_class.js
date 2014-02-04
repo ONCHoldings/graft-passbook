@@ -476,18 +476,21 @@ module.exports = {
     // === test drive node-forge (start)
     console.log("starting p12_file_extractor");
     var p12b64 = fs.readFileSync(this.vars.$certPath).toString('base64');
-    console.log("p12b64: ", p12b64);
+    // console.log("p12b64: ", p12b64);
     var p12Der = node_forge.util.decode64(p12b64);
     var p12Asn1 = node_forge.asn1.fromDer(p12Der);
     var p12 = node_forge.pkcs12.pkcs12FromAsn1(p12Asn1, this.vars.$certPass);
-    console.log("p12: ", p12);
-    var bags = p12.getBagsByFriendlyName({friendlyName: 'test'});
-    console.log("bags: ", bags);
-    var safe_bags = p12.safeContents[1].safeBags;
-    console.log("safeBags: ", safe_bags);
-    console.log("safeBags key: ", safe_bags[0].key);
-    console.log("safeBags key decrypt: ", safe_bags[0].key.decrypt(p12b64.length));
-    console.log("safeBags key sign: ", safe_bags[0].key.sign('RSA-SHA256'));
+    // console.log("p12: ", p12);
+    var safe_bags = p12.safeContents[0].safeBags;
+    // console.log("safeBags: ", safe_bags);
+    var public_key = safe_bags[0].cert.publicKey;
+    var cert = safe_bags[0].cert;
+    console.log("CERT: ", cert);
+    console.log("PUBLIC KEY: ", public_key);
+    // console.log("safeBags key: ", safe_bags[0].key);
+    //console.log("safeBags key decrypt: ", safe_bags[0].key.decrypt(p12b64.length));
+    //console.log("safeBags key sign: ", safe_bags[0].key.sign('RSA-SHA256'));
+    
     //     console.log("safeBags key decrypt: ", safe_bags[0].key.decrypt());
     // var p12_ascii = fs.readFileSync(this.vars.$certPath, 'ascii');
     //     var p12_f = node_forge.pkcs12.pkcs12FromAsn1(p12_ascii, this.vars.$certPass);
