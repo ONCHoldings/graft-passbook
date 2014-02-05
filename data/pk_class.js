@@ -433,11 +433,14 @@ module.exports = {
 	* This function creates the hashes for the files and adds them into a json string.
 	*/
   createManifest: function() {
+    this.vars.$SHAs.length = 0;
     var shasum = crypto.createHash('sha1');
+    
+    fs.writeFileSync(__dirname + "/assets/" + this.vars.$tempPath + this.vars.$uniqid + "/pass.json", JSON.stringify(this.vars.$JSON));
+    
     shasum.update(JSON.stringify(this.vars.$JSON));
     this.vars.$SHAs.push({'pass.json': shasum.digest('hex')});
     $hasicon = false;
-    this.vars.$SHAs.length = 0;
     if(this.vars.$files.length > 0) {
       for(var i = 0; i < this.vars.$files.length; i++) {
         if(this.vars.$files[i].name.toLowerCase() == 'icon.png') {
@@ -487,6 +490,9 @@ module.exports = {
     var cert = safe_bags[0].cert;
     console.log("CERT: ", cert);
     console.log("PUBLIC KEY: ", public_key);
+    // var signed = cert.sign(public_key);
+    //     console.log("SIGNED: ", signed);
+    
     // console.log("safeBags key: ", safe_bags[0].key);
     //console.log("safeBags key decrypt: ", safe_bags[0].key.decrypt(p12b64.length));
     //console.log("safeBags key sign: ", safe_bags[0].key.sign('RSA-SHA256'));
@@ -578,8 +584,10 @@ module.exports = {
     $paths = this.paths();
     var archive = new node_zip();
     var tmp_add_files = this.vars.$files;
+    var pass_json = __dirname + "/assets/" + this.vars.$tempPath + this.vars.$uniqid + "/pass.json";
     tmp_add_files.push({name: path.basename($paths.manifest), path: $paths.manifest});
     tmp_add_files.push({name: path.basename($paths.signature), path: $paths.signature});
+    tmp_add_files.push({name: path.basename(pass_json), path: pass_json});
     archive.addFiles(tmp_add_files, function (err) {
         if (err) return console.log("err while adding files", err);
         var buff = archive.toBuffer();
