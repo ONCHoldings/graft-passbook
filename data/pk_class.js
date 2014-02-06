@@ -465,113 +465,44 @@ module.exports = {
     }
     $manifest = JSON.stringify(this.vars.$SHAs);
     return $manifest;
-  },    
-  /*
-	* Converts PKCS7 PEM to PKCS7 DER
-	* Parameter: string, holding PKCS7 PEM, binary, detached
-	* Return: string, PKCS7 DER
-	*/
-  convertPEMtoDER: function($signature) {
-    
   },
-  p12_file_extractor: function() {
-    
-    // === test drive node-forge (start)
-    console.log("starting p12_file_extractor");
+  p12_file_extractor: function($paths, $manifest) {
     var p12b64 = fs.readFileSync(this.vars.$certPath).toString('base64');
-    // console.log("p12b64: ", p12b64);
     var p12Der = node_forge.util.decode64(p12b64);
     var p12Asn1 = node_forge.asn1.fromDer(p12Der);
     var p12 = node_forge.pkcs12.pkcs12FromAsn1(p12Asn1, this.vars.$certPass);
-    // console.log("p12: ", p12);
     var safe_bags = p12.safeContents[0].safeBags;
-    // console.log("safeBags: ", safe_bags);
     var public_key = safe_bags[0].cert.publicKey;
     var cert = safe_bags[0].cert;
-    console.log("CERT: ", cert);
-    console.log("PUBLIC KEY: ", public_key);
-    // var signed = cert.sign(public_key);
-    //     console.log("SIGNED: ", signed);
-    
-    // console.log("safeBags key: ", safe_bags[0].key);
-    //console.log("safeBags key decrypt: ", safe_bags[0].key.decrypt(p12b64.length));
-    //console.log("safeBags key sign: ", safe_bags[0].key.sign('RSA-SHA256'));
-    
-    //     console.log("safeBags key decrypt: ", safe_bags[0].key.decrypt());
-    // var p12_ascii = fs.readFileSync(this.vars.$certPath, 'ascii');
-    //     var p12_f = node_forge.pkcs12.pkcs12FromAsn1(p12_ascii, this.vars.$certPass);
-    //     console.log("ending p12_file_extractor");
-    //     console.log(pkcs12.safeContents());
-    // console.log("p12_f: ", p12_f);
-    // === test drive node-forge (end)
-    
-    
-    // var p12 = fs.readFileSync(this.vars.$certPath);
-    //     console.log("passphrase: ", this.vars.$certPass, typeof(this.vars.$certPass));
-    //     var key_string = "";
-    //     var cert_string = "";
-    //     var credentials = crypto.createCredentials({pfx: p12, key: key_string, cert: cert_string, passphrase: this.vars.$certPass});
-    //     console.log("credentials: ", credentials);
-    //     console.log("key_string: ", key_string);
-    //     console.log("cert_string: ", cert_string);
-    //     console.log("SOME SIGNATURE TEST: ", crypto.createSign('RSA-SHA256'));
-    
-    // var pemFile = "/web_projects/graft-passwork-app/node_modules/graft-passbook/data/assets/test_dumm.pem";
-    //     spawn("openssl", ["pkcs12", "-in", p12File, "-out", pemFile]).on("exit", function(code) {
-    //       console.log("CODE: ", code);
-    //       if (code == 0)
-    //         console.log("PEM GENERATION COMPLETED");
-    //       else
-    //         console.log("PEM GENERATION FAILED");
-    //     });
-                
-    // async.waterfall([
-    //       console.log("EXTRACTION WATERFALL STARTED")
-    //     ], function(error) {
-    //       console.log("waterwall error: ", error);
-    //       console.log("EXTRACTING FINISJHED");
-    //     });
+    var pem_cert = node_forge.pki.certificateToPem(cert);
+    console.log(pem_cert);
+    var pem_public_key = node_forge.pki.publicKeyToPem(public_key);
+    console.log(pem_public_key);
+    var pem_private_key = node_forge.pki.privateKeyToPem(p12.safeContents[1].safeBags[0].key);
+    console.log(pem_private_key);
+    // ==== sign manifest.json file using certificate (cert variable) and record result to 'signature' file (start)
+    var p7 = node_forge.pkcs7.createEnvelopedData();
+    p7.addRecipient(cert);
+    p7.content = node_forge.util.createBuffer($manifest);
+    p7.encrypt();
+    var p7_pem = node_forge.pkcs7.messageToPem(p7);
+    var p7 = node_forge.pkcs7.createSignedData();
+    p7.addCertificate(cert);
+    p7.addCertificate(cert);
+    var p7_pem = node_forge.pkcs7.messageToPem(p7);
+    console.log("p7_pem: ", p7_pem);
+    fs.writeFileSync($paths.signature, p7_pem); 
+    // ==== sign manifest.json file using certificate (cert variable) and record result to 'signature' file (end)
   },
   /*
 	* Creates a signature and saves it
 	* Parameter: json-string, manifest file
 	* Return: boolean, true on succes, failse on failure
 	*/
-  createSignature: function($manifest) { // node_forge
+  createSignature: function($manifest) {
     $paths = this.paths();
     fs.writeFileSync($paths.manifest, $manifest); // === write manifest data to manifest.json file
-    
-    // console.log("PATHS ON createSignature: ", $paths);
-    // var privateKey = fs.readFileSync(this.vars.$WWDRcertPath).toString('ascii');
-    // console.log("privateKey : ", privateKey);
-    this.p12_file_extractor();
-    fs.writeFileSync($paths.signature, "test"); // === write signature data to signature.json file // === TMP
-    
-
-    // var p12 = fs.readFileSync(this.vars.$certPath, 'ascii');
-    //     console.log(p12.toString('UTF-8'));
-    // console.log("pfx: ", p12);
-    // console.log("passphrase: ", this.vars.$certPass, typeof(this.vars.$certPass));
-    //     var credentials = crypto.createCredentials({pfx: p12, passphrase: this.vars.$certPass});
-    //     console.log("credentials: ", credentials);
-    // console.log("seciure pair: ", tls.createSecurePair(credentials));
-    
-    // fs.readFile(this.vars.$certPath, function(err_rf, data_rf) {
-    //       console.log('READING CERT FILE ERR: ', err_rf);
-    //       console.log('READING CERT FILE DATA: ', data_rf);
-    //       console.log('READING CERT FILE DATA STR: ', data_rf.toString('utf-8'));
-    //     });
-    
-    // var stream = fs.createReadStream(this.vars.$certPath, {
-    //       flags: 'r',
-    //       encoding: 'utf-8',
-    //       fd: null,
-    //       bufferSize: 1
-    //     }), line = "";
-    //     stream.addListener('data', function(char) {
-    //       console.log("STREAM CHAR: ", char);
-    //     });
-    
+    this.p12_file_extractor($paths, $manifest);
     return true;
   },
   /*
