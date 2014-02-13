@@ -134,10 +134,18 @@ describe("CHECK node_modules", function() {
 });
 // === check for required js files existence (end)
 
-// === functionality testings (start)
-describe("CHECK F", function() {
-  it("F", function() {
-    console.log("PK_CLASS: ", pk_class);
+// === functionality testings (pk_class.js methods test driving) (start)
+describe("PK CLASS TESTING SESSIONS: check vars existance", function() {
+  it("check vars existance", function() {
+    pk_class.vars.should.have.property('$name');
+    pk_class.vars.should.have.property('$files');
+    pk_class.vars.should.have.property('$JSON');
+    pk_class.vars.should.have.property('$SHAs');
+    pk_class.vars.should.have.property('$certPass');
+    pk_class.vars.should.have.property('$WWDRcertPath');
+    pk_class.vars.should.have.property('$tempPath');
+    pk_class.vars.should.have.property('$sError');
+    pk_class.vars.should.have.property('$uniqid');
   });
 });  
-// === functionality testings (end)
+// === functionality testings (pk_class.js methods test driving) (end)
