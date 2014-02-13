@@ -16,11 +16,22 @@
     "url": "https://github.com/ONCHoldings/graft-passbook/issues"
   },
   "dependencies": {
+    "backbone": "~1.0.0",
+    "request": "~2.21.0",
+    "debug": "~0.7.2",
     "underscore": "~1.5.1",
     "cradle": "0.6.x",
     "async": "~0.2.9",
     "cli": "x.x.x",
     "node-forge": "x.x.x",
     "node-native-zip": "x.x.x"
+  },
+  "scripts": {
+    "test": "mocha -R spec",
+    "start": "node server.js"
+  },
+  "devDependencies": {
+    "mocha": "~1.12.0",
+    "should": "~1.2.2"
   }
 }
