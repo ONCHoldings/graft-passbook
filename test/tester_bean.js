@@ -8,7 +8,7 @@ var pk_class = require('../data/pk_class.js');
 
 var testPort = 8901;
 
-var Graft = require('../server');
+// var Graft = require('../server');
 
 describe('CouchDB connection check', function() {
     before(utils.requestUrl(5984, ''));
