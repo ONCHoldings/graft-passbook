@@ -27,8 +27,7 @@
     "node-native-zip": "x.x.x"
   },
   "scripts": {
-    "test": "mocha -R spec",
-    "start": "node server.js"
+    "test": "mocha -R spec"
   },
   "devDependencies": {
     "mocha": "~1.12.0",
